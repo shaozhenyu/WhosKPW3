@@ -1,0 +1,84 @@
+package main
+
+import (
+	"log"
+	"sync"
+	"time"
+
+	"github.com/valyala/fasthttp"
+)
+
+var m *sync.RWMutex
+
+func main() {
+
+	m = new(sync.RWMutex)
+
+	cache := map[string]string{}
+
+	requestHandler := func(ctx *fasthttp.RequestCtx) {
+
+		//c := fasthttp.AcquireCookie()
+		//c.SetDomain("127.0.0.1")
+		//c.SetPath("/get")
+		//ctx.Response.Header.SetCookie(c)
+		//c.Reset()
+
+		switch string(ctx.Path()) {
+		case "/get":
+			getCh := make(chan struct{})
+			go func(ctx *fasthttp.RequestCtx) {
+				m.RLock()
+
+				args := ctx.QueryArgs()
+				key :=  args.Peek("key")
+				str := ""
+				if v, ok := cache[string(key)]; ok {
+					str = "value=" + string(v)
+					ctx.WriteString(str)
+				} else {
+					ctx.WriteString("unknow error")
+				}
+				close(getCh)
+				m.RUnlock()
+			}(ctx)
+
+			select {
+			case <-getCh:
+			case <-time.After(time.Second):
+				ctx.WriteString("timeout")
+			}
+
+		case "/set":
+			setCh := make(chan struct{})
+			go func(ctx *fasthttp.RequestCtx) {
+				m.Lock()
+				args := ctx.QueryArgs()
+				key :=  args.Peek("key")
+				value := args.Peek("value")
+				cache[string(key)] = string(value)
+				ctx.WriteString("ok")
+				close(setCh)
+				m.Unlock()
+			}(ctx)
+
+			select {
+			case <-setCh:
+			case <-time.After(time.Second):
+				ctx.WriteString("timeout")
+			}
+		default:
+			ctx.Error("Unsupported path", fasthttp.StatusNotFound)
+		}
+	}
+
+	ch := make(chan struct{})
+	go func() {
+		if err := fasthttp.ListenAndServe("127.0.0.1:8080", requestHandler); err != nil {
+			log.Fatalf("Error in ListenAndServe: %s", err)
+		}
+		close(ch)
+	}()
+
+	<-ch
+}
