@@ -1,22 +1,23 @@
 package main
 
 import (
-	//"fmt"
 	"log"
 	"sync"
-	//"time"
 	"strings"
 
 	"github.com/valyala/fasthttp"
 )
 
-var m *sync.RWMutex
-
 func main() {
 
-	m = new(sync.RWMutex)
+	var counter = struct{
+		sync.RWMutex
+		m map[string]string
+	}{m: make(map[string]string, 10000)}
 
-	var cache = make(map[string]string, 10000)
+	//m = new(sync.RWMutex)
+
+	//var cache = make(map[string]string, 10000)
 	//cache := map[string]string{}
 
 	requestHandler := func(ctx *fasthttp.RequestCtx) {
@@ -24,32 +25,30 @@ func main() {
 		switch string(ctx.Path()) {
 		case "/get":
 			func(ctx *fasthttp.RequestCtx) {
-				m.RLock()
+				counter.RLock()
 
 				args := ctx.QueryArgs().String()
 				s := strings.Split(args, "&")
 				key := s[0][4:]
-				if v, ok := cache[key]; ok {
+				if v, ok := counter.m[key]; ok {
 					str := "value=" + v
 					ctx.WriteString(str)
-					//fmt.Println(str)
 				} else {
 					ctx.WriteString("unknow error")
 				}
-				m.RUnlock()
+				counter.RUnlock()
 			}(ctx)
 
 		case "/set":
 			func(ctx *fasthttp.RequestCtx) {
-				m.Lock()
+				counter.Lock()
 				args := ctx.QueryArgs().String()
 				s := strings.Split(args, "&")
 				key := s[0][4:]
 				value := s[1][6:]
-				cache[key] = value
+				counter.m[key] = value
 				ctx.WriteString("ok")
-				//fmt.Println("ok")
-				m.Unlock()
+				counter.Unlock()
 			}(ctx)
 
 		default:

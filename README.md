@@ -17,3 +17,10 @@ http://host/get?key=<key>
 
 value=<value>
 其中key和value为不包含空格、等号的字符串，长度为1-257字节随机分布
+
+
+目前性能最佳 fasthttp
+
+优化想法：
+1.nginx
+2.修改fasthttp源码
