@@ -32,7 +32,6 @@ func main() {
 				if v, ok := cache[key]; ok {
 					str := "value=" + v
 					ctx.WriteString(str)
-					//fmt.Println(str)
 				} else {
 					ctx.WriteString("unknow error")
 				}
@@ -48,7 +47,6 @@ func main() {
 				value := s[1][6:]
 				cache[key] = value
 				ctx.WriteString("ok")
-				//fmt.Println("ok")
 				m.Unlock()
 			}(ctx)
 
