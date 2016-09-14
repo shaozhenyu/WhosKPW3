@@ -12,12 +12,12 @@ var m *sync.RWMutex
 
 func main() {
 
-	runtime.GOMAXPROCS(2)
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	m = new(sync.RWMutex)
 
-	//cache := map[string]string{}
-	var cache = make(map[string]string, 1000000)
+	cache := map[string]string{}
+	//var cache = make(map[string]string, 1000000)
 
 	requestHandler := func(ctx *fasthttp.RequestCtx) {
 
@@ -63,7 +63,7 @@ func main() {
 		}
 	}
 
-	if err := fasthttp.ListenAndServe("127.0.0.1:8080", requestHandler); err != nil {
+	if err := fasthttp.ListenAndServe("0.0.0.0:3000", requestHandler); err != nil {
 		log.Fatalf("Error in ListenAndServe: %s", err)
 	}
 }
